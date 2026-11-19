@@ -1198,7 +1198,9 @@ function parseWorkbook(wb) {
         if (key === "employees") res[id].employees = n; else if (SK[key]) { if (n) res[id].v[key] = n; res[id].matched++; } } }
     return { source: "App data file", months: Object.values(res).filter(m => calc(m.v).sales > 0) };
   }
-  const name = wb.SheetNames.find(n => /pmi\s*-?\s*e\s*-?\s*47/i.test(n)) || wb.SheetNames.find(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: null }).slice(0, 10).some(r => /trading account/i.test(String(r[0] ?? ""))));
+  const hasPL = n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: null }).slice(0, 10).some(r => /trading account/i.test(String(r[0] ?? "")));
+  // exact PMI-E47 first; similar names (e.g. "PMI-E47 Summary") only if they hold the monthly P&L
+  const name = wb.SheetNames.find(n => /^\s*pmi\s*-?\s*e\s*-?\s*47\s*$/i.test(n)) || wb.SheetNames.find(n => /pmi\s*-?\s*e\s*-?\s*47/i.test(n) && hasPL(n)) || wb.SheetNames.find(hasPL);
   if (!name) throw new Error("Couldn't find the PMI-E47 sheet or the app's PMI_Data sheet in this file.");
   const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: null });
   const h = rows.findIndex(r => /trading account/i.test(String(r[0] ?? "")) || r.some(c => /^target$/i.test(String(c ?? "").trim())));
